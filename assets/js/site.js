@@ -1,4 +1,4 @@
-// Navigation, photo viewer and (preview only) style picker.
+// Navigation, dropdown and photo viewer.
 (function () {
   "use strict";
 
@@ -89,34 +89,4 @@
     });
   }
 
-  // ---- Style picker: only on preview builds (body has data-preview) ----
-  if (document.body.hasAttribute("data-preview")) {
-    var themes = [
-      ["classic", "Classic", "White and clean, closest to your current site"],
-      ["field", "Field Notes", "Soft sage paper and a serif, for the sustainability work"],
-      ["studio", "Studio", "Bold type and cobalt blue, more modern"]
-    ];
-    var saved = null;
-    try { saved = localStorage.getItem("qkh-theme"); } catch (e) {}
-    if (saved) document.documentElement.setAttribute("data-theme", saved);
-
-    var panel = document.createElement("div");
-    panel.className = "style-picker";
-    panel.innerHTML = "<p>Preview a style</p><div class='opts'></div><button class='hide'>Hide this panel</button>";
-    var opts = panel.querySelector(".opts");
-    themes.forEach(function (t) {
-      var b = document.createElement("button");
-      b.innerHTML = t[1] + "<span>" + t[2] + "</span>";
-      b.setAttribute("aria-pressed", String(document.documentElement.getAttribute("data-theme") === t[0]));
-      b.addEventListener("click", function () {
-        document.documentElement.setAttribute("data-theme", t[0]);
-        try { localStorage.setItem("qkh-theme", t[0]); } catch (e) {}
-        opts.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
-        b.setAttribute("aria-pressed", "true");
-      });
-      opts.appendChild(b);
-    });
-    panel.querySelector(".hide").addEventListener("click", function () { panel.remove(); });
-    document.body.appendChild(panel);
-  }
 })();

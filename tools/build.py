@@ -1,71 +1,71 @@
 #!/usr/bin/env python3
-"""Builds the static site into the repo folder.
+"""Builds the static site.
 
-Usage: python3 build.py OUT_DIR [--preview] [--theme classic|field|studio]
+Usage: python3 tools/build.py OUT_DIR
 
-Every page shares one header, footer and set of helpers below, so adding
-a new project means adding one entry to a page's content.
+All page text and layout lives in this file. Each page is a photo banner
+followed by sections laid out on a 12-column grid (text on one side, photo
+collage on the other). On phones everything stacks into one column.
 """
 import sys, os, html
 
 OUT = sys.argv[1]
-PREVIEW = "--preview" in sys.argv
-THEME = sys.argv[sys.argv.index("--theme") + 1] if "--theme" in sys.argv else "classic"
 SITE = "https://www.qilankellandhong.org"
 NAME = "Qilan (Kelland) Hong"
-
-FONTS = {
-    "classic": "family=Hanken+Grotesk:wght@400;500;600;700",
-    "field": "family=Public+Sans:wght@400;500;600;700&family=Young+Serif",
-    "studio": "family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700",
-}
-
+FONTS = "family=Bricolage+Grotesque:opsz,wght@12..96,700&family=DM+Sans:ital,wght@0,300;0,500;0,700;1,300"
 E = html.escape
-AC = " aria-current=\"page\""
+AC = ' aria-current="page"'
 
-ICON_EXT = ('<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">'
-            '<path d="M6 3H3v10h10v-3M9 2h5v5M14 2 7 9"/></svg>')
 ICON_CHEV = ('<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">'
              '<path d="m2.5 4.5 3.5 3.5 3.5-3.5"/></svg>')
 ICON_MENU = ('<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">'
              '<path d="M2 5h14M2 9h14M2 13h14"/></svg>')
 
 
-# ---------------------------------------------------------------- helpers
-def img(name, alt, caption=None):
-    """One photo that opens full-size in the viewer."""
-    cap = f"<figcaption>{E(caption)}</figcaption>" if caption else ""
-    return (f'<figure><button type="button" data-full="assets/img/{name}.jpg" '
-            f'data-caption="{E(caption or alt)}" aria-label="Enlarge photo: {E(alt)}">'
-            f'<img src="assets/img/{name}-800.jpg" alt="{E(alt)}" loading="lazy" decoding="async">'
-            f"</button>{cap}</figure>")
+# ------------------------------------------------------------- building blocks
+def cell(inner, col=None, row=None, cls=""):
+    """A grid cell. col/row are CSS grid placements used on desktop only."""
+    style = []
+    if col: style.append(f"--col:{col}")
+    if row: style.append(f"--row:{row}")
+    st = f' style="{";".join(style)}"' if style else ""
+    return f'<div class="cell {cls}"{st}>{inner}</div>'
 
 
-def gallery(*figs, cls=""):
-    return f'<div class="gallery {cls}">{"".join(figs)}</div>'
+def shot(name, alt, cap=None, ar=None):
+    """A photo that opens full-size when clicked. ar crops it to an aspect ratio."""
+    fill = f' fill" style="--ar:{ar}' if ar else ""
+    c = f"<figcaption>{cap}</figcaption>" if cap else ""
+    plain_cap = html.unescape(cap or "")
+    return (f'<figure><button type="button" class="shot{fill}" data-full="assets/img/{name}.jpg" '
+            f'data-caption="{E(plain_cap)}" aria-label="Enlarge photo: {E(html.unescape(alt))}">'
+            f'<img src="assets/img/{name}-800.jpg" alt="{E(html.unescape(alt))}" loading="lazy" decoding="async"></button>{c}</figure>')
 
 
-def links(*pairs):
-    items = "".join(f'<a href="{E(u)}" target="_blank" rel="noopener">{E(t)}{ICON_EXT}</a>' for t, u in pairs)
-    return f'<div class="links">{items}</div>'
+def collage(*items, cols="1fr 1fr"):
+    """Photos side by side (the column widths come from the original layout)."""
+    return f'<div class="collage" style="grid-template-columns:{cols}">{"".join(items)}</div>'
+
+
+def btn(text, url, external=True):
+    ext = ' target="_blank" rel="noopener"' if external else ""
+    return f'<p><a class="btn" href="{E(url)}"{ext}>{text}</a></p>'
 
 
 def slides(src, title):
-    """Responsive Google Slides embed, plus a link in case the embed is blocked."""
     open_url = src.replace("/pubembed?", "/pub?")
-    return (f'<figure class="media"><div class="embed"><iframe src="{E(src)}" title="{E(title)}" '
-            f'loading="lazy" allowfullscreen></iframe></div>'
-            f'<figcaption>{E(title)} · <a href="{E(open_url)}" target="_blank" rel="noopener">Open the slides in a new tab</a></figcaption></figure>')
+    return (f'<div class="embed"><iframe src="{E(src)}" title="{E(title)}" loading="lazy" allowfullscreen></iframe></div>'
+            f'<p class="embed-link"><a href="{E(open_url)}" target="_blank" rel="noopener">Open the slides in a new tab</a></p>')
 
 
-def entry(title, meta, body, media="", eid=None):
-    idattr = f' id="{eid}"' if eid else ""
-    solo = "" if media else " solo"
-    m = f'<p class="meta">{meta}</p>' if meta else ""
-    right = f"<div>{media}</div>" if media else ""
-    return f'<article class="entry{solo}"{idattr}><div><h3>{title}</h3>{m}{body}</div>{right}</article>'
+RULE = '<hr class="rule">'
 
 
+def grid(*cells):
+    return f'<div class="grid">{"".join(cells)}</div>'
+
+
+# ------------------------------------------------------------- page shell
 NAV = [
     ("Home", "index.html"),
     ("Research", "research.html"),
@@ -81,24 +81,26 @@ def nav(current):
     for label, target in NAV:
         if isinstance(target, list):
             cur = any(h == current for _, h in target)
-            sub = "".join(
-                f'<li><a href="{h}"{AC if h == current else ""}>{E(l)}</a></li>'
-                for l, h in target)
+            sub = "".join(f'<li><a href="{h}"{AC if h == current else ""}>{E(l)}</a></li>' for l, h in target)
             out.append(f'<li class="has-sub{" current" if cur else ""}"><button type="button" class="nav-sub-toggle" '
                        f'aria-expanded="false">{E(label)}{ICON_CHEV}</button><ul class="nav-sub">{sub}</ul></li>')
         else:
-            ac = ' aria-current="page"' if target == current else ""
-            out.append(f'<li><a href="{target}"{ac}>{E(label)}</a></li>')
+            out.append(f'<li><a href="{target}"{AC if target == current else ""}>{E(label)}</a></li>')
     return "".join(out)
 
 
-def page(filename, title, description, body, og_image="headshot"):
+def hero(img, title, role=None):
+    r = f'<p class="role">{role}</p>' if role else ""
+    return (f'<section class="hero"><img src="assets/img/{img}.jpg" alt="" fetchpriority="high">'
+            f'<div><h1>{title}</h1>{r}</div></section>')
+
+
+def page(filename, title, description, body, og_image="headshot", banner=""):
     full_title = NAME if filename == "index.html" else f"{title} · {NAME}"
     path = "" if filename == "index.html" else filename[:-5]
-    fonts = "&".join(FONTS.values()) if PREVIEW else FONTS[THEME]
-    preview_attr = " data-preview" if PREVIEW else ""
+    body_cls = ' class="has-hero"' if banner else ""
     doc = f"""<!DOCTYPE html>
-<html lang="en" data-theme="{THEME}">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -112,36 +114,33 @@ def page(filename, title, description, body, og_image="headshot"):
 <meta property="og:url" content="{SITE}/{path}">
 <meta property="og:image" content="{SITE}/assets/img/{og_image}.jpg">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#fbfff2">
 <link rel="icon" href="assets/img/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?{fonts}&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?{FONTS}&display=swap">
 <link rel="stylesheet" href="assets/css/site.css">
 </head>
-<body{preview_attr}>
+<body{body_cls}>
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
-  <div class="wrap">
+  <div class="bar">
     <a class="brand" href="index.html">{E(NAME)}</a>
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">{ICON_MENU}Menu</button>
     <nav class="site-nav" id="site-nav" aria-label="Main"><ul class="nav-list">{nav(filename)}</ul></nav>
   </div>
 </header>
 <main id="main">
+{banner}
+<div class="page">
 {body}
+</div>
 </main>
 <footer class="site-footer" id="contact">
-  <div class="wrap">
-    <div>
-      <h2>Contact me</h2>
-      <ul class="contact-list">
-        <li><a href="mailto:qilan.k.hong@gmail.com">qilan.k.hong@gmail.com</a></li>
-        <li><a href="tel:+14159289558">+1 (415) 928-9558</a></li>
-        <li>San Gabriel, California</li>
-      </ul>
-    </div>
-    <small>&copy; 2026 {E(NAME)}</small>
-  </div>
+  <h4>Contact Me</h4>
+  <p><a href="mailto:qilan.k.hong@gmail.com">qilan.k.hong@gmail.com</a></p>
+  <p><a href="tel:+14159289558">+1 (415) 928-9558</a></p>
+  <p>San Gabriel, California</p>
 </footer>
 <script src="assets/js/site.js" defer></script>
 </body>
@@ -160,13 +159,7 @@ def redirect(old, new):
 """)
 
 
-def head(title, lede=None, role=None):
-    r = f'<p class="role">{E(role)}</p>' if role else ""
-    l = f'<p class="lede">{lede}</p>' if lede else ""
-    return f'<header class="page-head wrap">{r}<h1>{E(title)}</h1>{l}</header>'
-
-
-# ---------------------------------------------------------------- pages
+# ------------------------------------------------------------- pages
 SLIDES_MGMT = ("https://docs.google.com/presentation/d/e/2PACX-1vTe67A3n7HO0X2mjyyBOLw9fHLFjew2IUoqKafi6yZei86SqPlHxgwB_gkpMh_a6k4sWLaTgeFFXKUF"
                "/pubembed?start=false&loop=false&delayms=3000")
 SLIDES_VERM = ("https://docs.google.com/presentation/d/e/2PACX-1vQHkLiqwA7VuB54ixppdjmDRJgMeE5eYS1R8ZqAdnL8dCpzvVyZGIUN1m5UR9Pyv_hCopj_hogTLrgt"
@@ -174,252 +167,233 @@ SLIDES_VERM = ("https://docs.google.com/presentation/d/e/2PACX-1vQHkLiqwA7VuB54i
 
 
 def build_home():
-    cards = [
-        ("research.html", "research-harvard", "Research", "Consumer behavior, finance and genomics, with three published or in-progress papers."),
-        ("awards.html", "award-mun-delegate", "Awards", "Recognition in entrepreneurship, photography, Model UN and hackathons."),
-        ("vermighty.html", "verm-upclose", "Vermighty", "A hybrid composting system I designed and built for my school."),
-        ("leaf-by-leaf.html", "lbl-workshop-teaching", "Leaf by Leaf", "Hands-on growing workshops that let kids choose what they eat."),
-        ("leadership.html", "lead-global-initiatives", "Leadership", "Clubs, councils, festivals and volunteering, on campus and off."),
-        ("creative-athletic.html", "ca-dance-stage", "Creative & Athletic", "Badminton, dance, piano and singing."),
-    ]
-    grid = "".join(
-        f'<a class="explore-card" href="{h}"><img src="assets/img/{i}-800.jpg" alt="" loading="lazy">'
-        f"<h3>{E(t)}</h3><p>{E(d)}</p></a>" for h, i, t, d in cards)
-    body = f"""
-<section class="intro wrap">
-  <div>
-    <h1>Welcome to my portfolio!</h1>
-    <p class="lede">I'm Qilan (Kelland) Hong, a senior at Polytechnic School in Pasadena, California.</p>
-    <p>I'm fascinated by the hidden systems that shape how people think and decide. My work focuses on consumer behavior, sustainability and design. Explore my research, environmental initiatives, projects and leadership below.</p>
-    <div class="btn-row"><a class="btn" href="research.html">See my research</a><a class="btn ghost" href="#contact">Contact me</a></div>
-  </div>
-  <div class="intro-photo"><img src="assets/img/headshot.jpg" alt="Portrait of Qilan (Kelland) Hong" width="1200" height="1500"></div>
-</section>
-<section class="explore wrap" aria-labelledby="explore-h">
-  <h2 id="explore-h">Explore my work</h2>
-  <div class="explore-grid">{grid}</div>
-</section>"""
+    cards = [("research.html", "research-genomics", "Research"), ("awards.html", "award-mun-delegate", "Awards"),
+             ("vermighty.html", "verm-upclose", "Vermighty"), ("leaf-by-leaf.html", "lbl-workshop-teaching", "Leaf by Leaf"),
+             ("leadership.html", "lead-global-initiatives", "Leadership"), ("creative-athletic.html", "ca-dance-stage", "Creative &amp; Athletic")]
+    grid_html = "".join(f'<a class="explore-card" href="{h}"><img src="assets/img/{i}-800.jpg" alt="" loading="lazy"><span>{t}</span></a>'
+                        for h, i, t in cards)
+    body = '<div class="home-intro">' + grid(
+        cell("<h2>Welcome to my portfolio!</h2>"
+             "<p>My name is Qilan (Kelland) Hong, and I am currently a senior at Polytechnic School in Pasadena, California.</p>"
+             "<p>I am fascinated by the hidden systems that shape how people think and make decisions. Across much of my work, I explore the intersection of consumer behavior, sustainability, and design, often questioning how small changes can lead to larger social or environmental impact.</p>"
+             "<p>Feel free to explore this page to learn more about my research, environmental initiatives, projects, leadership, and more. I hope it gives you a glimpse into the questions that drive my curiosity and the ways I’ve tried to turn those questions into action.</p>",
+             "1 / 8", "1"),
+        cell('<div class="home-photo"><img src="assets/img/headshot.jpg" alt="Portrait of Qilan (Kelland) Hong" width="1200" height="1500"></div>',
+             "9 / -1", "1"),
+    ) + "</div>"
+    body += f'<section class="explore" aria-label="Explore my work"><div class="explore-grid">{grid_html}</div></section>'
     page("index.html", "Home",
-         "Qilan (Kelland) Hong, a senior at Polytechnic School in Pasadena, California: research, awards, community impact, leadership and creative work.",
+         "Qilan (Kelland) Hong, a senior at Polytechnic School in Pasadena, California, exploring consumer behavior, sustainability, and design.",
          body)
 
 
 def build_research():
-    body = head("Research", "Studies in consumer behavior, financial markets and genomics, plus the technical training behind them.")
-    body += '<div class="wrap">'
-    body += entry(
-        "Hybrid Consumer Identity in Ghanaian Fashion: Coexistence of Sustainable and Fast-Fashion Consumption Among Young Adults",
-        "<strong>Johns Hopkins University</strong> (Pioneer Research Institute) · Summer–Fall 2026",
-        "<p>Working with a Johns Hopkins professor, I'm running a cross-sectional study that pairs a literature review with an online survey. It asks whether young Ghanaian consumers form a “hybrid” identity that blends sustainable and fast-fashion clothing. The question grew out of my interest in fashion sustainability and my internship with Unkara Fashion Collective, a textile sustainability nonprofit.</p>"
-        + links(("Read it here", "https://docs.google.com/document/d/1C-m4gjO5XDZR9Du6J9tVdPWnFCYGEW_X/edit?usp=sharing&ouid=107115511025543877695&rtpof=true&sd=true")),
-        gallery(img("research-ghana-survey", "Survey charts from the Ghanaian fashion study", "Snapshot of primary survey data from ~160 participants."), cls="one natural"))
-    body += entry(
-        "Understanding Sectoral Responses to Tariff Uncertainty via a High-Dimensional Mediation Analysis",
-        "<strong>Penn State University</strong> (Prof. Runze Li) · 2025–present · Published",
-        "<p>I studied how financial fundamentals mediate the link between a company's sector and its stock-market performance during the 2025 tariff periods. Using high-dimensional mediation analysis, I identified which financial variables explain why sectors responded to the shock differently.</p>"
-        + links(("Read it on arXiv", "https://doi.org/10.48550/arXiv.2609.33881")))
-    body += entry(
-        "Environmental and Genetic Influences in Alcohol Use Disorder",
-        "<strong>National Human Genome Research Institute</strong> (Genomics: Insight) · 2026 · Published",
-        "<p>I co-wrote this paper with four others on how environmental and biological factors shape alcohol use and addiction. I synthesized research on machine-learning models that predict relapse and treatment outcomes, and discussed how environmental variables interact with genetic susceptibility.</p>"
-        + links(("Read it on Genomics Insight", "https://www.unlockinglifescode.org/genomics-insights/environmental-and-genetic-influences-alcohol-use-disorder")),
-        gallery(img("research-genomics", "Presenting the genomics research to an audience"), cls="one"))
-    body += '</div><section class="section wrap"><h2>Technical &amp; research preparation</h2>'
-    body += entry(
-        "Mathematical Elements of AI",
-        "<strong>Harvard University</strong> Pre-College Program · Summer 2025",
-        "<p>A four-week program on the mathematics behind neural networks: multivariable calculus and linear algebra. I implemented gradient descent and backpropagation from scratch and trained CNNs on MNIST and CIFAR, reaching over 99.6% classification accuracy. My final project was a computer-vision model that recognizes playing cards, built into a working Blackjack game.</p>",
-        gallery(img("research-harvard", "Harvard Pre-College class group photo"),
-                img("research-harvard-training", "Laptop screen showing the card classifier training", "Training the card classifier.")))
-    body += '</section><section class="section wrap"><h2>Other research-related programs</h2>'
-    body += entry(
-        "Wharton Global Youth Program: MGMT 0001",
-        "<strong>Wharton School</strong> · Fall 2025",
-        "<p>Business-strategy case studies, including Trader Joe's and Gong Cha. For the final project, my team analyzed why Uber's expansion into China failed and proposed a localized “Build + Borrow” strategy.</p>"
-        + links(("About the course", "https://globalyouth.wharton.upenn.edu/programs-courses/mgmt-0001-principles-of-management/")),
-        slides(SLIDES_MGMT, "WGYP MGMT 0001 final project")
-        + gallery(img("research-wharton-class", "Video-call grid of the MGMT 0001 class", "WGYP MGMT 0001 class photo."), cls="one"))
-    body += entry(
-        "Los Angeles Behavioral Economics Laboratory",
-        "Trainee · 2025–present",
-        "<p>Training in behavioral and experimental methods, with work spanning AI, housing and the environment.</p>"
-        + links(("LABEL training program", "https://label-laboratory.org/label-training-program/")))
-    body += entry(
-        "World Assembly of Youth",
-        "Research Intern · 2024–2025",
-        "<p>Wrote five research papers of 10+ pages each on education, poverty, ICT access, leisure and juvenile delinquency, each tied to the UN Sustainable Development Goals.</p>"
-        + links(("World Assembly of Youth", "https://www.way.org.my/")))
-    body += entry(
-        "USC Data Analytics Pre-College",
-        "<strong>University of Southern California</strong> · Summer 2024",
-        "<p>A statistical analysis course. My final project applied k-means clustering to a dataset of 2,000+ students using Python, Pandas and Tableau.</p>"
-        + links(("About the program", "https://precollege.usc.edu/summer-programs/analytics-the-power-of-data-for-businesses/")))
-    body += "</section>"
+    p1 = ("<h4>Hybrid Consumer Identity in Ghanaian Fashion: The Coexistence of Sustainable and Fast-Fashion Consumption Among Young Adults</h4>"
+          "<p class=\"meta\">Johns Hopkins University (Pioneer Research Institute) · Summer to Fall 2026</p>"
+          "<p>In the Pioneer Research Institute, I worked with a Johns Hopkins University professor to produce a cross-sectional study combining a literature review and online survey to investigate the existence of a hybrid consumer in Ghana that integrates both sustainable and fast-fashion clothing into their identity. With a personal interest in the sustainability of fashion and interning for a textile sustainability nonprofit, Unkara Fashion Collective, I directly drew on my own experiences and questions about the tension between ethical values and everyday consumer choices when developing my research topic.</p>"
+          + shot("research-ghana-survey", "Survey charts from the Ghanaian fashion study", "Snapshot of primary survey data from ~160 participants")
+          + btn("Read it here!", "https://docs.google.com/document/d/1C-m4gjO5XDZR9Du6J9tVdPWnFCYGEW_X/edit?usp=sharing&ouid=107115511025543877695&rtpof=true&sd=true"))
+    p2 = ("<h4>Understanding Sectoral Responses to Tariff Uncertainty via a High-Dimensional Mediation Analysis</h4>"
+          "<p class=\"meta\">Penn State University (Prof. Runze Li) · 2025 - Present · <em>published</em></p>"
+          "<p>Driven by my interest in how large-scale environmental and economic changes alter market behavior, I worked with Dr. Runze Li to produce a primary study examining how financial fundamentals mediated the relationship between company sector and stock-market performance during major tariff-affected periods in 2025. I utilized high-dimensional mediation analysis to identify which financial variables helped explain differences in sector-level shock responses.</p>"
+          + btn("Read it on arXiv", "https://doi.org/10.48550/arXiv.2609.33881"))
+    p3 = ("<h4>Environmental and Genetic Influences in Alcohol Use Disorder</h4>"
+          "<p class=\"meta\">National Human Genome Research Institute (Genomics: Insight) · 2026 · <em>published</em></p>"
+          "<p>Growing up in a health-conscious household, I was highly curious about how environmental and societal factors can influence one's health. This led me to work with four others to write a paper investigating how environmental and biological factors influence alcohol use and addiction. I synthesized the research on machine-learning models used to predict things like relapse and treatment outcomes, and wrote about how environmental variables interact with susceptibility from genetics.</p>"
+          + btn("Read it on Genomics Insight (NHGRI)", "https://www.unlockinglifescode.org/genomics-insights/environmental-and-genetic-influences-alcohol-use-disorder"))
+    body = grid(cell(p1, "1 / 5"), cell(p2, "5 / 9"), cell(p3, "9 / -1"), RULE)
+    body += grid(
+        cell("<h4>Technical &amp; Research Preparation</h4>"
+             "<p><strong>Mathematical Elements of AI</strong></p>"
+             "<p class=\"meta\">Harvard University (Pre-College Program) · Summer 2025</p>"
+             "<p>Four weeks exploring the mathematics behind neural networks through multivariable calculus and linear algebra. I implemented gradient descent and backpropagation from scratch before training CNNs on MNIST and CIFAR, reaching 99.6%+ classification accuracy. For my final project, I trained a computer-vision model to identify playing cards and integrated it into a functioning Blackjack game.</p>",
+             "1 / 6"),
+        cell(collage(shot("research-harvard", "Harvard Pre-College class group photo", ar="1 / 1"),
+                     shot("research-harvard-training", "Laptop showing the card classifier training", "Training the card classifier", ar="2 / 3"),
+                     cols="1.8fr 1fr"), "7 / -1"),
+        RULE)
+    body += grid(
+        cell("<h4>Other research-related programs</h4>"
+             '<ul class="programs">'
+             '<li><p><a href="https://globalyouth.wharton.upenn.edu/programs-courses/mgmt-0001-principles-of-management/" target="_blank" rel="noopener"><strong>Wharton Global Youth Program, MGMT 0001</strong></a>: Principles of Management (Fall 2025). Analyzed business strategy through case studies including Trader Joe’s and Gong Cha; final project examined Uber’s failed China expansion and proposed a localized “Build + Borrow” strategy.</p></li>'
+             '<li><p><a href="https://label-laboratory.org/label-training-program/" target="_blank" rel="noopener"><strong>Los Angeles Behavioral Economics Laboratory</strong></a>: trainee, (2025-Present). Training in behavioral and experimental research methodology across topics including AI, housing, and the environment.</p></li>'
+             '<li><p><a href="https://www.way.org.my/" target="_blank" rel="noopener"><strong>World Assembly of Youth</strong></a>, research intern (2024-2025). Wrote five 10+ page research papers on education, poverty, ICT access, leisure, and juvenile delinquency to support WAY’s youth-development work, connecting each to the UN Sustainable Development Goals.</p></li>'
+             '<li><p><a href="https://precollege.usc.edu/summer-programs/analytics-the-power-of-data-for-businesses/" target="_blank" rel="noopener"><strong>USC Data Analytics Pre-College</strong></a> (Summer 2024). Studied statistical analysis and completed a final project using k-means clustering on a 2,000+ student dataset with Python, Pandas, and Tableau.</p></li>'
+             "</ul>", "1 / 7"),
+        cell(slides(SLIDES_MGMT, "WGYP MGMT 0001 Final Project") + '<p class="cap">WGYP MGMT 0001 Final Project</p>'
+             + '<div style="margin-top:1.2rem">' + shot("research-wharton-class", "Video-call grid of the MGMT 0001 class", "WGYP MGMT 0001 Class Photo") + "</div>",
+             "8 / -1"))
     page("research.html", "Research",
          "Research by Qilan (Kelland) Hong on sustainable fashion in Ghana, sector responses to tariff uncertainty, and genetic influences in alcohol use disorder.",
-         body, "research-harvard")
+         body, "research-genomics", hero("research-genomics", "Research"))
+
+
+def award(title, meta, text, extra, media, media_col="7 / -1"):
+    return grid(cell(f"<h4>{title}</h4><p class=\"meta\">{meta}</p><p>{text}</p>{extra}", "1 / 7"),
+                cell(media, media_col), RULE)
 
 
 def build_awards():
-    body = head("Awards & honors")
-    body += '<div class="wrap">'
-    body += entry(
-        "Sabrina Zhang Award",
-        "<strong>Polytechnic School</strong> · Grade 11",
-        '<p class="stat">$700 grant</p><p>The award funded <a href="vermighty.html">Vermighty</a>, my two-chamber composting system, taking it from sketches to a campus prototype used for testing and curriculum integration.</p>',
-        gallery(img("verm-hero", "Building the Vermighty composting system on campus"), cls="one"))
-    body += entry(
-        "Top 100 Finalist, Blue Ocean Student Entrepreneur Competition",
-        "<strong>Blue Ocean Student Entrepreneurs Corp</strong> · Grade 10",
-        '<p class="stat">Top 1% of 12,000+ students from 163 countries</p><p>Named a global Top 100 finalist for Vermighty.</p>'
-        + links(("Watch the pitch", "https://www.youtube.com/watch?v=ykseSfgmh6g&t=30s"), ("View the certificate", "assets/media/blue-ocean-certificate.pdf")),
-        gallery(img("award-blue-ocean-cert", "Blue Ocean Competition Top 100 finalist certificate"), cls="one natural"))
-    body += entry(
-        "Scholastic Art &amp; Writing Awards, Photography",
-        "<strong>Alliance for Young Artists &amp; Writers</strong> · Grade 11",
-        '<p class="stat">Two Silver Keys and an Honorable Mention, out of ~110,000 entrants</p><p>Recognized for three photographs: <em>Above the Noise</em>, <em>The Crowd and the Sea</em> and <em>Stones That Remember</em>.</p>',
-        gallery(img("award-above-the-noise", "Above the Noise: a fiery orange sky over a dark silhouette", "Above the Noise"),
-                img("award-crowd-and-sea", "The Crowd and the Sea: waves at sunset with people on the rocks", "The Crowd and the Sea"),
-                img("award-stones-that-remember", "Stones That Remember: a narrow cobblestone lane between old brick houses", "Stones That Remember"),
-                cls="three"))
-    body += entry(
-        "Outstanding Delegate, Northwood High School Model UN",
-        "<strong>Northwood High School MUNC</strong> · Grade 11",
-        "<p>Represented Al Gore on a committee on energy consumption and climate policy, and earned Outstanding Delegate for research, speeches and negotiation.</p>",
-        gallery(img("award-mun-delegate", "Receiving the Outstanding Delegate certificate on stage"),
-                img("award-mun-group", "Polytechnic Model UN delegation group photo")))
-    body += entry(
-        "2nd Place, GNEC Hackathon",
-        "<strong>Global NGO Executive Committee</strong> · Grade 10",
-        '<p class="stat">2nd of 3,000 participants</p><p>Built TarantulaX, a solar-powered reverse-osmosis drone. I later joined GNEC as a partnerships coordinator and judge.</p>'
-        + links(("See TarantulaX on Devpost", "https://devpost.com/software/tarantulax")),
-        gallery(img("award-drone", "Line drawing of the TarantulaX drone design", "Drone design"), cls="one natural"))
-    body += "</div>"
+    body = award("Recipient, Sabrina Zhang Award", "Polytechnic School · Grade 11",
+                 '$700 school grant to fund <a href="vermighty.html">Vermighty</a>, turning a set of sketches into a two-chamber composting system now situated on campus for testing and school curriculum integration.',
+                 "", shot("verm-hero", "Building the Vermighty composting system", ar="16 / 9"), "8 / -1")
+    body += award("Top 100 Finalist (Top 1%), Blue Ocean Student Entrepreneur Competition", "Blue Ocean Student Entrepreneurs Corp · Grade 10",
+                  "Selected as a Top 100 Global Finalist from 12,000+ student participants across 163 countries for Vermighty.",
+                  btn("Watch the pitch here!", "https://www.youtube.com/watch?v=ykseSfgmh6g&t=30s"),
+                  shot("award-blue-ocean-cert", "Blue Ocean Competition Top 100 finalist certificate"), "9 / -1")
+    body += award("Award-Winning Photographer, Scholastic Art &amp; Writing Awards", "Alliance for Young Artists &amp; Writers · Grade 11",
+                  "Two Silver Keys and an Honorable Mention in Photography, out of roughly 110,000 entrants. The pieces were <em>Above the Noise</em>, <em>The Crowd and the Sea</em>, and <em>Stones That Remember</em>.",
+                  "",
+                  collage(shot("award-above-the-noise", "Above the Noise: a fiery orange sky over a dark silhouette", "Above the Noise", ar="1 / 1"),
+                          shot("award-crowd-and-sea", "The Crowd and the Sea: waves at sunset", "The Crowd and the Sea", ar="4 / 5"),
+                          shot("award-stones-that-remember", "Stones That Remember: a cobblestone lane between old brick houses", "Stones That Remember", ar="2 / 3"),
+                          cols="1fr 1fr 1fr"))
+    body += award("Outstanding Delegate, Northwood High School Model UN Conference", "Grade 11",
+                  "Represented Al Gore in a committee on energy consumption and climate policy, earning Outstanding Delegate for my research, speeches, and negotiation.",
+                  "",
+                  collage(shot("award-mun-delegate", "Receiving the Outstanding Delegate award on stage", ar="4 / 3"),
+                          shot("award-mun-group", "Polytechnic Model UN delegation", ar="4 / 3")))
+    body += grid(cell("<h4>2nd Place, GNEC Hackathon</h4><p class=\"meta\">Global NGO Executive Committee · Grade 10</p>"
+                      "<p>Selected out of 3,000 participants for \"TarantulaX,\" a solar-powered reverse osmosis drone. I've since stayed on with GNEC as a partnerships coordinator and a judge.</p>"
+                      + btn("Check out TarantulaX!", "https://devpost.com/software/tarantulax"), "1 / 7"),
+                 cell(shot("award-drone", "Line drawing of the TarantulaX drone", "Drone Design"), "8 / 11"))
     page("awards.html", "Awards",
          "Awards and honors of Qilan (Kelland) Hong: Sabrina Zhang Award, Blue Ocean Top 100, Scholastic Art & Writing Awards, Model UN and GNEC Hackathon.",
-         body, "award-mun-delegate")
+         body, "award-mun-delegate", hero("award-mun-delegate", "Awards &amp; Honors"))
 
 
 def build_vermighty():
-    body = head("Vermighty",
-                "A hybrid thermophilic and vermicomposting system I designed, engineered and built. It tests whether heat-based and worm-based composting can work in sequence at micro-scale: heat speeds up decomposition first, then worms improve the compost's quality.",
-                "Founder · 2025–present")
-    body += '<div class="wrap"><figure class="hero-figure">' + gallery(img("verm-upclose", "The finished Vermighty composting bin in its frame"), cls="one") + "</figure>"
-    body += entry("Early design sketches", "",
-                  "<p>Vermighty started as sketches and a 3D model before I built the campus prototype.</p>",
-                  slides(SLIDES_VERM, "Early Vermighty design sketches")
-                  + gallery(img("verm-model", "Technical drawing of the Vermighty model", "Vermighty model drawing."), cls="one natural"))
-    body += entry("Testing and presentations", "",
-                  "<p>Vermighty is being tested on my high school campus, funded by $700 from the Sabrina Zhang Award. I presented it at Terrapalooza, Poly's Earth Day festival.</p>",
-                  gallery(img("verm-terrapalooza-1", "Presenting Vermighty at Terrapalooza", "Presenting Vermighty at Terrapalooza"),
-                          img("verm-terrapalooza-2", "Title slide: Vermighty, Rethinking Food Systems"),
-                          img("verm-assembling", "Assembling Vermighty on campus", "Assembling Vermighty on campus"),
-                          img("verm-hero", "Collage of Vermighty under construction")))
-    body += entry("A small circular system", "",
-                  "<p>I partner with Epicurean, the school's food service, to collect leftover food for compost testing. The finished compost goes to the Poly Planters club for its garden beds, closing the loop on campus.</p>",
-                  gallery(img("verm-leftovers", "School food leftovers ready for composting", "School leftovers Vermighty used"),
-                          img("verm-location", "Vermighty under its canopy on campus", "Location of Vermighty"),
-                          img("verm-garden-beds", "Poly Planters garden beds", "Location of Poly Planters garden beds"),
-                          cls="three"))
-    body += entry("Long-term goal", "",
-                  "<p>I want Vermighty built into the school curriculum so other students can run and develop it. I'm working toward this through an Independent Study with a teacher, focused on curriculum development and long-term implementation.</p>")
-    body += "</div>"
+    body = grid(cell('<p class="statement">Vermighty is a <u>hybrid thermophilic and vermicomposting system</u> I designed, engineered, and built to test whether the two processes can work sequentially at a micro-scale. The system uses heat first for faster decomposition, then worms to improve compost quality.</p>'))
+    body += '<div class="spacer"></div>'
+    body += grid(
+        cell('<p class="cap">Early Vermighty Design Sketches ⬇️⬇️</p>', "6 / -1", "1", "center"),
+        cell(shot("verm-model", "Technical drawing of the Vermighty model"), "1 / 6", "2"),
+        cell(slides(SLIDES_VERM, "Early Vermighty Design Sketches"), "6 / -1", "2"),
+        RULE)
+    left = ("<p>I’m currently testing Vermighty on my high school campus with <strong>$700 in funding</strong> from the Sabrina Zhang Award, and I’ve <strong>presented the project</strong> at our Earth Day event, Terrapalooza.</p>"
+            + collage(shot("verm-terrapalooza-1", "Presenting Vermighty at Terrapalooza", ar="8 / 7"),
+                      shot("verm-terrapalooza-2", "Title slide: Vermighty, Rethinking Food Systems", ar="8 / 7"))
+            + '<p class="cap">Presenting Vermighty at Terrapalooza ⬆️</p>'
+            + '<div class="spacer sm"></div>'
+            + collage(shot("verm-assembling", "Assembling Vermighty on campus", ar="1 / 1"),
+                      shot("verm-hero", "Collage of Vermighty under construction", ar="1 / 1"))
+            + '<p class="cap">Assembling Vermighty on Campus ⬆️</p>')
+    right = ("<p>I’m also <strong>partnering with Epicurean</strong>, our school food service, to collect leftover food for compost testing. Once the compost is ready, I <strong>give it to our school’s Poly Planters club</strong> to use in their garden beds, creating a <strong>small circular system</strong> on campus.</p>"
+             + collage(shot("verm-leftovers", "School food leftovers used for compost", "School leftovers Vermighty used", ar="1 / 2"),
+                       '<div>' + shot("verm-upclose", "The finished Vermighty bin", ar="8 / 7")
+                       + '<p class="cap" style="margin-top:0.8rem">Location of Vermighty to ⬇️⬇️</p>'
+                       + shot("verm-location", "Vermighty’s spot on campus", ar="5 / 3") + "</div>",
+                       cols="1fr 1.7fr")
+             + '<div class="push-right">' + shot("verm-garden-beds", "The Poly Planters garden beds", ar="4 / 3")
+             + '<p class="cap">⬆️ Location of Poly Planters garden beds</p></div>')
+    body += grid(cell(left, "1 / 7", "1"), '<div class="vrule" style="--col:7 / 8;--row:1"></div>', cell(right, "8 / -1", "1"))
+    body += '<hr class="rule short">'
+    body += grid(cell("<p>My long-term goal is to<strong> build Vermighty into the school curriculum</strong> so other students can continue running and developing it beyond my own involvement. I’m currently working toward that goal through an <strong>Independent Study</strong> with a teacher focused on developing Vermighty’s curriculum and long-term implementation.</p>",
+                      "4 / 10", None, "center"))
     page("vermighty.html", "Vermighty",
-         "Vermighty: a hybrid thermophilic and vermicomposting system designed and built by Qilan (Kelland) Hong at Polytechnic School.",
-         body, "verm-upclose")
+         "Vermighty: a hybrid thermophilic and vermicomposting system designed, engineered, and built by Qilan (Kelland) Hong.",
+         body, "verm-upclose", hero("verm-hero", "Vermighty", "Founder · 2025 - present"))
 
 
 def build_lbl():
-    body = head("Leaf by Leaf",
-                "I co-founded Leaf by Leaf after noticing that children are told which foods are healthy without much say in the choice. Our workshops have kids plant and care for food themselves, then decide whether to eat what they grew.",
-                "Co-Founder · 2026–present")
-    body += '<div class="wrap">'
-    body += '<p>' + links(("Visit the Leaf by Leaf website", "https://www.leaf-by-leaf.org/home")) + "</p>"
-    body += entry("Workshops", "",
-                  '<p class="stat">20+ workshops · 600+ people reached</p>'
-                  "<p>I've designed and led workshops at schools, youth centers, a rescue mission, a children's museum and community events, in person and virtually.</p>",
-                  gallery(img("lbl-workshop-teaching", "Teaching a Leaf by Leaf workshop in a middle-school classroom"),
-                          img("lbl-workshop-class", "A class of students posing with their growing kits"),
-                          img("lbl-virtual", "Leading a virtual workshop from a laptop", "Leading hands-on workshops, in person and virtually!"),
-                          img("lbl-workshop-collage", "Students raising hands during a workshop")))
-    body += entry("Our children's book and growing kits", "",
-                  "<p>We wrote and published an original children's book and created take-home growing kits that extend the workshops. We've donated many of both.</p>"
-                  + links(("Leaf by Leaf on Amazon", "https://www.amazon.com/Leaf-Qilan-Hong/dp/B0H8BXJ7BD")),
-                  gallery(img("lbl-book", "Cover of the Leaf by Leaf children's book", "Our original children's book!"),
-                          img("lbl-books-kids", "Kids reading the Leaf by Leaf book outdoors"),
-                          img("lbl-hero", "Stacks of take-home growing kits", "Donated take-home growing kits!"),
-                          img("lbl-donations", "Book donations to community partners", "Book donations!")))
-    body += entry("Recognition", "",
-                  "<p>We were named Dragon Kim Foundation Fellows, with $5,000 in funding, and were featured on CBS News.</p>"
-                  + links(("Watch the CBS News segment", "https://www.youtube.com/watch?v=zIxP-wy2kek")),
-                  gallery(img("lbl-dragon-kim", "Receiving Dragon Kim Foundation Fellow medals", "Dragon Kim Foundation Fellows"),
-                          img("lbl-cbs", "Stills from the CBS News segment", "Featured on CBS News")))
-    body += "</div>"
+    body = grid(cell('<p class="statement">I co-founded Leaf by Leaf after noticing that children were often told what foods were healthy without being given much ownership over those choices. I developed our hands-on approach around <u>planting, caring for, and ultimately choosing whether to try food they grew themselves</u>.</p>', "1 / 12"),
+                cell(btn("Visit Leaf by Leaf’s website here to learn more about my work!", "https://www.leaf-by-leaf.org/home"), "1 / -1", None, "center"))
+    body += '<div class="spacer"></div>'
+    left = ("<p>I designed and led <strong>20+ workshops</strong> across schools, youth centers, a rescue mission, a children’s museum, and community events, <strong>reaching 600+ people</strong>.</p>"
+            + collage(shot("lbl-workshop-class", "A class posing with their Leaf by Leaf growing kits", ar="4 / 5"),
+                      shot("lbl-virtual", "Leading a virtual workshop from a laptop", ar="4 / 5"))
+            + '<p class="cap">Leading hands-on workshops, in-person and virtually!</p>'
+            + '<div class="spacer sm"></div>'
+            + collage(shot("lbl-workshop-teaching", "Teaching a workshop in a middle-school classroom", ar="3 / 4"),
+                      shot("lbl-workshop-collage", "Students raising hands during a workshop", ar="3 / 4")))
+    right = ("<p>I co-wrote and published our <strong>original children’s book</strong> and developed <strong>take-home growing kits </strong>to extend the experience beyond each workshop. We have donated many of both.</p>"
+             + collage('<div>' + shot("lbl-book", "Cover of the Leaf by Leaf children’s book", "Our original CHILDREN’S BOOK!", ar="6 / 5")
+                       + btn("Check out Leaf by Leaf on AMAZON here", "https://www.amazon.com/Leaf-Qilan-Hong/dp/B0H8BXJ7BD")
+                       + shot("lbl-books-kids", "Kids holding Leaf by Leaf books outdoors", "Donated take-home growing kits!", ar="6 / 5") + "</div>",
+                       shot("lbl-donations", "Book donations to community partners", "Book donations!", ar="3 / 5"),
+                       cols="1.25fr 1fr")
+             + '<div class="spacer sm"></div>' + shot("lbl-hero", "Stacks of take-home growing kits", ar="16 / 9"))
+    body += grid(cell(left, "1 / 6"), cell(right, "7 / -1"), RULE)
+    body += grid(cell("<h4>Recognition</h4>", "1 / -1", None, "center"),
+                 cell(shot("lbl-dragon-kim", "Receiving Dragon Kim Foundation Fellow medals", ar="4 / 3")
+                      + '<p class="cap">Recognized as Dragon Kim Foundation Fellows with $5,000 in funding</p>', "2 / 6"),
+                 cell(shot("lbl-cbs", "Stills from the CBS News segment", ar="16 / 10")
+                      + '<p class="cap">Featured in CBS News</p>'
+                      + '<p><a href="https://www.youtube.com/watch?v=zIxP-wy2kek" target="_blank" rel="noopener"><strong>Full News Snippet Here!</strong></a></p>', "7 / 12"))
     page("leaf-by-leaf.html", "Leaf by Leaf",
-         "Leaf by Leaf, co-founded by Qilan (Kelland) Hong: 20+ hands-on growing workshops reaching 600+ people, an original children's book and take-home kits.",
-         body, "lbl-workshop-teaching")
+         "Leaf by Leaf, co-founded by Qilan (Kelland) Hong: 20+ hands-on growing workshops reaching 600+ people, an original children’s book and take-home growing kits.",
+         body, "lbl-workshop-teaching", hero("lbl-hero", "Leaf by Leaf", "Co-Founder · 2026 - Present"))
 
 
 def build_leadership():
-    body = head("Leadership & volunteering")
-    body += '<div class="wrap">'
-    body += entry("Terrapalooza", "Programming Committee Member &amp; Presenter · <strong>Polytechnic School</strong> · 2025–present",
-                  "<p>Terrapalooza is Poly's Earth Day festival. On the programming committee I design climate-education workshops and speaker events. At the 2026 festival I presented a climate constitution to peers and faculty that draws on behavioral economics, intergenerational equity and environmental design policy, and shared the story behind Vermighty.</p>",
-                  gallery(img("lead-climate-treaty", "Presenting the climate constitution at Terrapalooza"), cls="one"))
-    body += entry("Poly Global Voices Club", "Head of Operations · 2025–present",
-                  "<p>Global Voices is a student-led club connecting high schoolers worldwide to discuss global issues. I run communications and coordinate with partner schools in Australia, Singapore and Finland. I've helped host a school event with visiting professor Dr. Steven Lamy, presented research on the Fukushima wastewater release and co-organized a school-wide clothing swap.</p>",
-                  gallery(img("lead-clothing-swap", "Organizers at the school-wide clothing swap", "School-wide clothing swap"),
-                          img("lead-global-initiatives", "Students with Dr. Steven Lamy at a Global Initiatives event", "Global Initiatives Program event")))
-    body += entry("GNEC Hackathon", "Partnerships Coordinator &amp; Judge · <strong>Global NGO Executive Committee</strong> · 2024–present",
-                  "<p>After placing second in the 2024 hackathon, I stayed on as an intern. The role began with social-media graphics and grew into leading partner and sponsor outreach, designing marketing and branding, moderating opening and closing ceremonies and judging. I've judged over 600 finalist presentations, and I built an automated certificate-distribution system to replace a manual process.</p>")
-    body += entry("The Huntington", "Museum Education &amp; Gardening Volunteer · 2025–present",
-                  "<p>I lead hands-on cultural learning for visitors in the Chinese Garden's Flowery Brush Library and help run sustainability-focused events such as the Huntington's plant sale.</p>",
-                  gallery(img("lead-huntington", "Volunteering at a calligraphy table in the Huntington's Chinese Garden"), cls="one"))
-    body += entry("Boys &amp; Girls Club of Pasadena", "Volunteer · 2025–present",
-                  "<p>I volunteer weekly with after-school enrichment and leisure activities, and I've brought Leaf by Leaf workshops to several Boys &amp; Girls Club locations.</p>")
-    body += entry("Global Scholar", "<strong>Polytechnic School</strong> · 2026–present",
-                  "<p>As a Global Scholar I attend speaker events with diplomats and policy experts, take part in cross-cultural exchanges and write a blog analyzing international affairs, from geopolitical conflicts to global environmental policy. I also serve as a Global Ambassador, helping organize events and discussions that build global awareness on campus.</p>"
-                  + links(("Visit my blog", "https://kellandhgip.squarespace.com")))
-    body += entry("Judiciary Council", "<strong>Polytechnic School</strong> · 2025–present",
-                  "<p>Elected and interviewed onto the Judiciary Council. On the Policy and Student Voice subcommittee, I review student conduct cases on behalf of the student body.</p>")
-    body += "</div>"
+    def entry(title, meta, text, media=None, extra=""):
+        cells = [cell(f"<h4>{title}</h4><p class=\"meta\">{meta}</p>{text}{extra}", "1 / 8" if media else "1 / 10")]
+        if media: cells.append(cell(media, "8 / -1"))
+        cells.append(RULE)
+        return grid(*cells)
+
+    body = entry("Terrapalooza", "Programming Committee Member &amp; Presenter, Polytechnic School · 2025 – present",
+                 "<p>Terrapalooza is Poly’s Earth Day festival. Working on the programming committee, I design climate education workshops and speaker events. </p>"
+                 "<p>I also present! In 2026’s Terrapalooza, I presented a <strong>climate constitution</strong> I wrote to peers and faculty, which connected behavioral economics, intergenerational equity, and environmental design policy into one framework. I also told the story behind <strong><a href=\"vermighty.html\">Vermighty</a></strong>.</p>",
+                 shot("lead-climate-treaty", "Presenting the climate constitution at Terrapalooza", ar="6 / 5"))
+    body += entry("Poly Global Voices Club", "Head of Operations · 2025 – present",
+                  "<p>Global Voices is a student-led international club connecting high schoolers around the world to share varying views on global issues. For Global Voices, I handle the communications and operational coordination across our many partners spanning Australia, Singapore, and Finland. I’ve assisted in <strong>hosting a school event </strong>with a visiting professor (Dr. Steven Lamy), <strong>presented research</strong> on the Fukushima wastewater release, and <strong>co-organized a school-wide clothing swap</strong>.</p>",
+                  collage(shot("lead-clothing-swap", "The school-wide clothing swap", ar="6 / 5"),
+                          shot("lead-global-initiatives", "With Dr. Steven Lamy at a Global Initiatives event", ar="6 / 5")))
+    body += entry("GNEC Hackathon", "Partnerships Coordinator &amp; Judge, Global NGO Executive Committee · 2024 – present",
+                  "<p>After coming second in this hackathon in 2024, I stayed as an intern. I started as <strong>creating promotional graphics </strong>for social media. Now, I<strong> lead partner and sponsor outreach,</strong> continuing to design marketing and branding materials, <strong>moderate hackathon events</strong> such as opening/closing ceremonies, and <strong>judge</strong> (600+ finalist presentations up to date). I also have <strong>built an automated certificate distribution system </strong>after noticing the manual inefficiency.</p>")
+    body += entry("Global Scholar", "Polytechnic School · 2026 - present",
+                  "<p>As a Global Scholar at Polytechnic School, I attend <strong>speaker events</strong> with <strong>diplomats</strong> and <strong>policy experts</strong>, participate in cross-cultural exchanges, and write a <strong>blog</strong> analyzing international affairs, from geopolitical conflicts to global environmental policies. I also serve as a Global Ambassador, helping <strong>organize events and discussions</strong> that foster global awareness on campus.</p>",
+                  extra=btn("Visit my blog here!", "https://kellandhgip.squarespace.com/"))
+    body += entry("Judiciary Council", "Polytechnic School · 2025 - present",
+                  "<p>I was elected and interviewed into the Judiciary Council, where I focus in the Policy and Student Voice subcommittee on reviewing student conduct cases to represent the student body.</p>")
+    body += grid(
+        cell("<h4>Volunteering</h4>"
+             "<p><strong>The Huntington</strong></p><p class=\"meta\">Museum Education &amp; Gardening Volunteer · 2025 – present</p>"
+             "<p>At the Huntington, I lead hands-on cultural learning in the Chinese Garden’s Flowery Brush Library for public visitors and help facilitate sustainability-focused events such as the Huntington’s plant sale. </p>"
+             "<p class=\"gap\"><strong>Boys &amp; Girls Club (Pasadena)</strong></p><p class=\"meta\">Volunteer · 2025 – present</p>"
+             "<p>I volunteer weekly at the Boys and Girls Club to assist with after-school enrichment and leisure activities. I have also brought my own advocacy work–<a href=\"leaf-by-leaf.html\">Leaf by Leaf</a>–to multiple Boys and Girls Clubs locations.</p>",
+             "1 / 7"),
+        cell(collage(shot("lead-huntington", "Volunteering at the Huntington’s Chinese Garden", "The Huntington", ar="4 / 5"),
+                     shot("lbl-workshop-collage", "A Leaf by Leaf workshop with Boys and Girls Club kids", "Boys &amp; Girls Club", ar="4 / 5")),
+             "7 / -1"))
     page("leadership.html", "Leadership",
-         "Leadership and volunteering by Qilan (Kelland) Hong: Terrapalooza, Global Voices, GNEC, The Huntington, Boys & Girls Club, Global Scholar and Judiciary Council.",
-         body, "lead-global-initiatives")
+         "Leadership and volunteering by Qilan (Kelland) Hong: Terrapalooza, Global Voices, GNEC, Global Scholar, Judiciary Council, The Huntington and Boys & Girls Club.",
+         body, "lead-global-initiatives", hero("lead-global-initiatives", "Leadership and Volunteering"))
 
 
 def build_creative():
-    body = head("Creative & athletic")
-    body += '<div class="wrap">'
-    body += entry("Badminton", "Varsity · <strong>Polytechnic School</strong> · 2025–present",
-                  "<p>I've loved playing badminton with my family since I was young, and playing with close friends on a school team was a dream come true. I play mixed and girls' doubles, and placed second in girls' doubles in the Montview League in 2025.</p>",
-                  gallery(img("ca-badminton", "Playing badminton in the school gym"), cls="one"))
-    body += entry("Dance", "2010–present",
-                  "<p>I've been dancing since I was two, starting with ballet. At nine, I performed with San Francisco Ballet despite being a year below the program's minimum age. Moving between schools, cities and countries, I explored K-pop, jazz and hip-hop. Today I mainly dance hip-hop. Below is a piece I co-choreographed for my school's dance show.</p>",
-                  '<figure class="media"><video class="player" controls preload="metadata" playsinline poster="assets/img/ca-dance-video-poster.jpg">'
-                  '<source src="assets/media/dance-show.mp4" type="video/mp4">Your browser can’t play this video.</video>'
-                  "<figcaption>A piece I co-choreographed for the school dance show.</figcaption></figure>"
-                  + gallery(img("ca-dance-stage", "Mid-kick on stage under purple lights"),
-                            img("ca-dance-show", "The full dance ensemble on stage"),
-                            img("ca-dance-collage", "Dance rehearsal and performance collage"), cls="three"))
-    body += entry("Piano", "2012–present",
-                  "<p>Piano has always been an outlet for expression and relaxation. I've played classical piano for 14 years and won awards in multiple competitions.</p>"
-                  + links(("Watch a chamber music piece I played", "https://www.youtube.com/watch?v=4skXd9GU03w")),
-                  gallery(img("ca-piano", "Performing on a grand piano"),
-                          img("ca-piano-competition", "At a European international music competition")))
-    body += entry("Singing", "2020–present",
-                  "<p>I've always loved singing and began formal lessons in 2020. Since then I've worked on vocal technique, interpretation and performance across contemporary and musical-theatre repertoire. Here's a professionally recorded cover.</p>",
-                  '<div class="audio-card"><div class="title">Someone You Loved <span>· cover of Lewis Capaldi</span></div>'
-                  '<audio controls preload="none" src="assets/media/someone-you-loved-cover.mp3"></audio></div>')
-    body += "</div>"
+    def entry(title, meta, text, media, extra=""):
+        return grid(cell(f"<h3>{title}</h3><p class=\"meta\">{meta}</p>{text}{extra}", "1 / 7"), cell(media, "7 / -1"), RULE)
+
+    body = entry("Badminton", "Polytechnic School · Varsity · 2025 - present",
+                 "<p>I’ve loved playing badminton with my family since I was young, and being able to play with close friends on a school team was a dream come true. I play mixed and girls doubles, and placed second in girls’ doubles in the Montview League in 2025.</p>",
+                 collage(shot("ca-badminton", "Playing badminton in the school gym", ar="4 / 5"),
+                         shot("ca-badminton-team", "The Polytechnic badminton team with their medals", ar="7 / 6"), cols="1fr 1.4fr"))
+    body += entry("Dance", "2010 - present",
+                  "<p>I’ve been dancing since I was two, starting with ballet. At nine, I performed with San Francisco Ballet despite being a year below the program’s minimum age. As I moved between schools, cities, and countries, I explored styles including K-pop, jazz, and hip-hop. Today, I primarily dance hip-hop. Below is a piece I co-choreographed for my school’s dance show.</p>"
+                  '<p class="cap">⬇️⬇️</p>'
+                  '<video class="player" controls preload="metadata" playsinline poster="assets/img/ca-dance-video-poster.jpg">'
+                  '<source src="assets/media/dance-show.mp4" type="video/mp4">Your browser can’t play this video.</video>',
+                  collage(shot("ca-dance-collage", "Dance rehearsal and performance collage", ar="4 / 5"),
+                          shot("ca-dance-stage", "Mid-kick on stage under purple lights", ar="4 / 5")))
+    body += entry("Piano", "2012 - present",
+                  "<p>I’ve always seen piano as an outlet of expression and relaxation. I’ve played classical piano for 14 years now, and competed in multiple competitions with awards. </p>",
+                  collage(shot("ca-piano", "Performing on a grand piano", ar="4 / 3"),
+                          shot("ca-piano-competition", "At an international music competition", ar="4 / 3")),
+                  btn("Check out a chamber music piece I played here!", "https://www.youtube.com/watch?v=4skXd9GU03w"))
+    body += grid(cell("<h3>Singing/Vocal</h3><p class=\"meta\">2020 - present</p>"
+                      "<p>I’ve always loved singing, but formally began taking lessons in 2020. Since then, I’ve worked on vocal technique, interpretation, and performance through a mix of contemporary and musical theatre repertoire. I have included one professionally recorded cover I did here.</p>", "1 / 7"),
+                 cell('<div class="audio-card"><div class="t">Someone You Loved Cover</div><div class="a">Lewis Capaldi</div>'
+                      '<audio controls preload="none" src="assets/media/someone-you-loved-cover.mp3"></audio></div>', "8 / 12"))
     page("creative-athletic.html", "Creative & Athletic",
          "Badminton, dance, piano and singing: the creative and athletic side of Qilan (Kelland) Hong.",
-         body, "ca-dance-stage")
+         body, "ca-dance-stage", hero("ca-dance-show", "Creative &amp; Athletic"))
 
 
 def build_404():
     page("404.html", "Page not found", "This page doesn't exist.",
-         head("Page not found", 'This page doesn\'t exist or has moved. <a href="index.html">Go to the homepage</a>.'))
+         '<h2>Page not found</h2><p>This page doesn’t exist or has moved.</p>' + btn("Go to the homepage", "index.html", external=False))
 
 
 os.makedirs(OUT, exist_ok=True)
@@ -431,4 +405,4 @@ redirect("awards-1.html", "awards.html")
 redirect("new-page.html", "leadership.html")
 redirect("new-page-2.html", "creative-athletic.html")
 redirect("com.html", "index.html")
-print("built", OUT, "preview" if PREVIEW else THEME)
+print("built", OUT)
