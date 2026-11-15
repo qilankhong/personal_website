@@ -12,7 +12,7 @@ import sys, os, html
 OUT = sys.argv[1]
 SITE = "https://www.qilankellandhong.org"
 NAME = "Qilan (Kelland) Hong"
-FONTS = "family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Caveat:wght@600;700&family=DM+Sans:ital,wght@0,300;0,500;0,700;1,300"
+FONTS = "family=Bricolage+Grotesque:opsz,wght@12..96,700&family=DM+Sans:ital,wght@0,300;0,500;0,700;1,300"
 E = html.escape
 AC = ' aria-current="page"'
 
@@ -37,9 +37,7 @@ def shot(name, alt, cap=None, ar=None):
     fill = f' fill" style="--ar:{ar}' if ar else ""
     c = f"<figcaption>{cap}</figcaption>" if cap else ""
     plain_cap = html.unescape(cap or "")
-    global _TILT
-    _TILT += 1
-    return (f'<figure class="snap t{_TILT % 4}"><button type="button" class="shot{fill}" data-full="assets/img/{name}.jpg" '
+    return (f'<figure class="snap"><button type="button" class="shot{fill}" data-full="assets/img/{name}.jpg" '
             f'data-caption="{E(plain_cap)}" aria-label="Enlarge photo: {E(html.unescape(alt))}">'
             f'<img src="assets/img/{name}-800.jpg" alt="{E(html.unescape(alt))}" loading="lazy" decoding="async"></button>{c}</figure>')
 
@@ -64,8 +62,8 @@ RULE = '<hr class="rule">'
 _TILT = 0
 
 # Hand-drawn arrows that replace the emoji arrows in captions
-_DOWN = ('<svg class="doodle" viewBox="0 0 34 56" aria-hidden="true"><path d="M17 3c-9 9 9 17 1 27-3 4-2 10-1 20"/>'
-         '<path d="M7 41c4 4 7 7 10 10 3-4 6-8 10-11"/></svg>')
+_DOWN = ('<svg class="doodle" viewBox="0 0 34 56" aria-hidden="true"><path d="M15 4c-6 10 8 18 3 30-1.5 4-1.5 9-1 16"/>'
+         '<path d="M8 42l9 10 9-10"/></svg>')
 _UP = _DOWN.replace('class="doodle"', 'class="doodle up"')
 ARROWS = [("⬇️⬇️", _DOWN + _DOWN), ("⬇️", _DOWN), ("⬆️", _UP)]
 
@@ -153,8 +151,7 @@ def page(filename, title, description, body, og_image="headshot", banner=""):
     full_title = NAME if filename == "index.html" else f"{title} · {NAME}"
     path = "" if filename == "index.html" else filename[:-5]
     body_cls = ' class="has-hero"' if banner else ""
-    st = STATS.get(filename, "")
-    body = body.replace("{{STATS}}", st) if "{{STATS}}" in body else st + body
+    body = body.replace("{{STATS}}", "")
     for emo, svg in ARROWS:
         body = body.replace(emo, svg)
     doc = f"""<!DOCTYPE html>
@@ -199,6 +196,7 @@ def page(filename, title, description, body, og_image="headshot", banner=""):
   <p><a href="mailto:qilan.k.hong@gmail.com">qilan.k.hong@gmail.com</a></p>
   <p><a href="tel:+14159289558">+1 (415) 928-9558</a></p>
   <p>San Gabriel, California</p>
+  <p style="margin-top:0.8rem"><a href="assets/media/qilan-hong-resume.pdf" target="_blank" rel="noopener"><strong>Resume (PDF)</strong></a></p>
 </footer>
 <script src="assets/js/site.js" defer></script>
 </body>
@@ -234,7 +232,9 @@ def build_home():
         cell("<h2>Welcome to my portfolio!</h2>"
              "<p>My name is Qilan (Kelland) Hong, and I am currently a senior at Polytechnic School in Pasadena, California.</p>"
              "<p>I am fascinated by the hidden systems that shape how people think and make decisions. Across much of my work, I explore the intersection of consumer behavior, sustainability, and design, often questioning how small changes can lead to larger social or environmental impact.</p>"
-             "<p>Feel free to explore this page to learn more about my research, environmental initiatives, projects, leadership, and more. I hope it gives you a glimpse into the questions that drive my curiosity and the ways I’ve tried to turn those questions into action.</p>",
+             "<p>Feel free to explore this page to learn more about my research, environmental initiatives, projects, leadership, and more. I hope it gives you a glimpse into the questions that drive my curiosity and the ways I’ve tried to turn those questions into action.</p>"
+             '<div class="btn-row"><p><a class="btn" href="assets/media/qilan-hong-resume.pdf" target="_blank" rel="noopener">View my resume</a></p>'
+             '<p><a class="btn ghost" href="research.html">Explore my work</a></p></div>',
              "1 / 8", "1"),
         cell('<div class="home-photo"><img src="assets/img/headshot.jpg" alt="Portrait of Qilan (Kelland) Hong" width="1200" height="1500"></div>',
              "9 / -1", "1"),
