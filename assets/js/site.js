@@ -89,4 +89,33 @@
     });
   }
 
+  // ---- Quick-glance numbers count up when they scroll into view ----
+  var nums = document.querySelectorAll(".stat .num[data-to]");
+  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (nums.length && "IntersectionObserver" in window && !still) {
+    var fmt = function (el, v) {
+      var to = el.getAttribute("data-to");
+      var dec = to.indexOf(".") > -1 ? to.split(".")[1].length : 0;
+      var s = v.toFixed(dec);
+      if (el.getAttribute("data-comma") === "1") s = Number(s).toLocaleString("en-US");
+      el.textContent = el.getAttribute("data-pre") + s + el.getAttribute("data-suf");
+    };
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        io.unobserve(en.target);
+        var el = en.target, end = parseFloat(el.getAttribute("data-to")), t0 = null, dur = 1100;
+        if (end < 4) return; // tiny numbers just appear
+        var tick = function (t) {
+          if (!t0) t0 = t;
+          var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+          fmt(el, end * e);
+          if (k < 1) requestAnimationFrame(tick);
+        };
+        fmt(el, 0);
+        requestAnimationFrame(tick);
+      });
+    }, { threshold: 0.6 });
+    nums.forEach(function (n) { io.observe(n); });
+  }
 })();

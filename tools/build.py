@@ -12,7 +12,7 @@ import sys, os, html
 OUT = sys.argv[1]
 SITE = "https://www.qilankellandhong.org"
 NAME = "Qilan (Kelland) Hong"
-FONTS = "family=Bricolage+Grotesque:opsz,wght@12..96,700&family=DM+Sans:ital,wght@0,300;0,500;0,700;1,300"
+FONTS = "family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Caveat:wght@600;700&family=DM+Sans:ital,wght@0,300;0,500;0,700;1,300"
 E = html.escape
 AC = ' aria-current="page"'
 
@@ -37,7 +37,9 @@ def shot(name, alt, cap=None, ar=None):
     fill = f' fill" style="--ar:{ar}' if ar else ""
     c = f"<figcaption>{cap}</figcaption>" if cap else ""
     plain_cap = html.unescape(cap or "")
-    return (f'<figure><button type="button" class="shot{fill}" data-full="assets/img/{name}.jpg" '
+    global _TILT
+    _TILT += 1
+    return (f'<figure class="snap t{_TILT % 4}"><button type="button" class="shot{fill}" data-full="assets/img/{name}.jpg" '
             f'data-caption="{E(plain_cap)}" aria-label="Enlarge photo: {E(html.unescape(alt))}">'
             f'<img src="assets/img/{name}-800.jpg" alt="{E(html.unescape(alt))}" loading="lazy" decoding="async"></button>{c}</figure>')
 
@@ -59,6 +61,58 @@ def slides(src, title):
 
 
 RULE = '<hr class="rule">'
+_TILT = 0
+
+# Hand-drawn arrows that replace the emoji arrows in captions
+_DOWN = ('<svg class="doodle" viewBox="0 0 34 56" aria-hidden="true"><path d="M17 3c-9 9 9 17 1 27-3 4-2 10-1 20"/>'
+         '<path d="M7 41c4 4 7 7 10 10 3-4 6-8 10-11"/></svg>')
+_UP = _DOWN.replace('class="doodle"', 'class="doodle up"')
+ARROWS = [("⬇️⬇️", _DOWN + _DOWN), ("⬇️", _DOWN), ("⬆️", _UP)]
+
+
+def stat(num, label, href=None):
+    """One quick-glance number. num like '600+', '$5,700', 'Top 1%'; digits count up on scroll."""
+    import re
+    m = re.search(r"[\d,]+(?:\.\d+)?", num)
+    data = ""
+    if m:
+        pre, val, suf = num[:m.start()], m.group(0), num[m.end():]
+        data = f' data-to="{val.replace(",", "")}" data-pre="{E(pre)}" data-suf="{E(suf)}" data-comma="{1 if "," in val else 0}"'
+    tag, attr = ("a", f' href="{href}"') if href else ("div", "")
+    return f'<{tag} class="stat"{attr}><span class="num"{data}>{E(num)}</span><span class="lbl">{label}</span></{tag}>'
+
+
+def stats(*items):
+    return f'<section class="stats" aria-label="At a glance">{"".join(items)}</section>'
+
+
+STATS = {
+    "index.html": stats(
+        stat("3", "research papers, 2 published", "research.html"),
+        stat("Top 1%", "Blue Ocean finalist out of 12,000+ students", "awards.html"),
+        stat("600+", "people reached through 20+ Leaf by Leaf workshops", "leaf-by-leaf.html"),
+        stat("$5,700", "in grants and fellowship funding", "vermighty.html"),
+        stat("2nd", "of 3,000 at the GNEC Hackathon", "awards.html"),
+        stat("14", "years of classical piano", "creative-athletic.html")),
+    "research.html": stats(
+        stat("3", "research papers"), stat("2", "published"),
+        stat("~160", "survey participants in Ghana"), stat("99.6%+", "accuracy training CNNs at Harvard")),
+    "awards.html": stats(
+        stat("Top 1%", "of 12,000+ students from 163 countries"), stat("2nd", "of 3,000 hackathon participants"),
+        stat("3", "Scholastic awards out of ~110,000 entrants"), stat("$700", "school grant for Vermighty")),
+    "vermighty.html": stats(
+        stat("$700", "in funding from the Sabrina Zhang Award"), stat("2", "composting stages: heat first, then worms"),
+        stat("Top 100", "global finalist, Blue Ocean Competition")),
+    "leaf-by-leaf.html": stats(
+        stat("20+", "workshops designed and led"), stat("600+", "people reached"),
+        stat("$5,000", "Dragon Kim Foundation funding"), stat("1", "original children’s book, published")),
+    "leadership.html": stats(
+        stat("600+", "finalist presentations judged for GNEC"), stat("3", "partner countries for Global Voices"),
+        stat("7", "leadership and volunteer roles")),
+    "creative-athletic.html": stats(
+        stat("16", "years of dance"), stat("14", "years of classical piano"),
+        stat("2nd", "in girls’ doubles, Montview League 2025"), stat("6", "years of vocal training")),
+}
 
 
 def grid(*cells):
@@ -99,6 +153,10 @@ def page(filename, title, description, body, og_image="headshot", banner=""):
     full_title = NAME if filename == "index.html" else f"{title} · {NAME}"
     path = "" if filename == "index.html" else filename[:-5]
     body_cls = ' class="has-hero"' if banner else ""
+    st = STATS.get(filename, "")
+    body = body.replace("{{STATS}}", st) if "{{STATS}}" in body else st + body
+    for emo, svg in ARROWS:
+        body = body.replace(emo, svg)
     doc = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -181,6 +239,7 @@ def build_home():
         cell('<div class="home-photo"><img src="assets/img/headshot.jpg" alt="Portrait of Qilan (Kelland) Hong" width="1200" height="1500"></div>',
              "9 / -1", "1"),
     ) + "</div>"
+    body += "{{STATS}}"
     body += f'<section class="explore" aria-label="Explore my work"><div class="explore-grid">{grid_html}</div></section>'
     page("index.html", "Home",
          "Qilan (Kelland) Hong, a senior at Polytechnic School in Pasadena, California, exploring consumer behavior, sustainability, and design.",
