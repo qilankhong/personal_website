@@ -9,7 +9,7 @@
   --bg: #fbfff2;
   --ink: #000000;
   --line: #d6dacb;
-  --accent: #2e4bff;
+  --accent: #000000;
   --accent-ink: #ffffff;
   --soft: #eef2e2;
   --font-head: "Bricolage Grotesque", system-ui, sans-serif;
@@ -29,7 +29,7 @@ body {
 img, video { max-width: 100%; height: auto; display: block; }
 strong, b { font-weight: 700; }
 a { color: inherit; text-underline-offset: 0.16em; text-decoration-thickness: 1px; }
-a:hover { color: var(--accent); }
+a:hover { text-decoration-thickness: 2px; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
 p { margin: 0 0 0.85em; }
 p:last-child { margin-bottom: 0; }
@@ -138,7 +138,7 @@ figcaption, .cap { font-weight: 700; margin-top: 0.45rem; line-height: 1.25; }
   padding: 0.75rem 1.35rem; border-radius: 999px; background: var(--accent); color: var(--accent-ink);
   text-decoration: none; font-weight: 500; font-size: 0.98rem; letter-spacing: -0.02em; line-height: 1.2;
 }
-.btn:hover { background: #000; color: #fff; }
+.btn:hover { background: #3a3a3a; color: #fff; }
 
 /* Embeds & media */
 .embed { position: relative; width: 100%; aspect-ratio: 16 / 9.4; background: var(--soft); border-radius: 4px; overflow: hidden; }

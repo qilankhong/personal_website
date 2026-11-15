@@ -168,7 +168,7 @@ SLIDES_VERM = ("https://docs.google.com/presentation/d/e/2PACX-1vQHkLiqwA7VuB54i
 
 def build_home():
     cards = [("research.html", "research-genomics", "Research"), ("awards.html", "award-mun-delegate", "Awards"),
-             ("vermighty.html", "verm-upclose", "Vermighty"), ("leaf-by-leaf.html", "lbl-workshop-teaching", "Leaf by Leaf"),
+             ("vermighty.html", "verm-terrapalooza-1", "Vermighty"), ("leaf-by-leaf.html", "lbl-workshop-teaching", "Leaf by Leaf"),
              ("leadership.html", "lead-global-initiatives", "Leadership"), ("creative-athletic.html", "ca-dance-stage", "Creative &amp; Athletic")]
     grid_html = "".join(f'<a class="explore-card" href="{h}"><img src="assets/img/{i}-800.jpg" alt="" loading="lazy"><span>{t}</span></a>'
                         for h, i, t in cards)
@@ -292,7 +292,7 @@ def build_vermighty():
                       "4 / 10", None, "center"))
     page("vermighty.html", "Vermighty",
          "Vermighty: a hybrid thermophilic and vermicomposting system designed, engineered, and built by Qilan (Kelland) Hong.",
-         body, "verm-upclose", hero("verm-hero", "Vermighty", "Founder · 2025 - present"))
+         body, "verm-terrapalooza-1", hero("verm-terrapalooza-1", "Vermighty", "Founder · 2025 - present"))
 
 
 def build_lbl():
