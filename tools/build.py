@@ -312,7 +312,7 @@ def build_lbl():
                        + shot("lbl-books-kids", "Kids holding Leaf by Leaf books outdoors", "Donated take-home growing kits!", ar="6 / 5") + "</div>",
                        shot("lbl-donations", "Book donations to community partners", "Book donations!", ar="3 / 5"),
                        cols="1.25fr 1fr")
-             + '<div class="spacer sm"></div>' + shot("lbl-hero", "Stacks of take-home growing kits", ar="16 / 9"))
+)
     body += grid(cell(left, "1 / 6"), cell(right, "7 / -1"), RULE)
     body += grid(cell("<h4>Recognition</h4>", "1 / -1", None, "center"),
                  cell(shot("lbl-dragon-kim", "Receiving Dragon Kim Foundation Fellow medals", ar="4 / 3")
