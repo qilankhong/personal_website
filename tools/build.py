@@ -322,7 +322,7 @@ def build_lbl():
                       + '<p><a href="https://www.youtube.com/watch?v=zIxP-wy2kek" target="_blank" rel="noopener"><strong>Full News Snippet Here!</strong></a></p>', "7 / 12"))
     page("leaf-by-leaf.html", "Leaf by Leaf",
          "Leaf by Leaf, co-founded by Qilan (Kelland) Hong: 20+ hands-on growing workshops reaching 600+ people, an original children’s book and take-home growing kits.",
-         body, "lbl-workshop-teaching", hero("lbl-hero", "Leaf by Leaf", "Co-Founder · 2026 - Present"))
+         body, "lbl-workshop-teaching", hero("lbl-hero", "Leaf by Leaf", "Co-Founder · 2025 - Present"))
 
 
 def build_leadership():
@@ -342,14 +342,14 @@ def build_leadership():
                           shot("lead-global-initiatives", "With Dr. Steven Lamy at a Global Initiatives event", ar="6 / 5")))
     body += entry("GNEC Hackathon", "Partnerships Coordinator &amp; Judge, Global NGO Executive Committee · 2024 – present",
                   "<p>After coming second in this hackathon in 2024, I stayed as an intern. I started as <strong>creating promotional graphics </strong>for social media. Now, I<strong> lead partner and sponsor outreach,</strong> continuing to design marketing and branding materials, <strong>moderate hackathon events</strong> such as opening/closing ceremonies, and <strong>judge</strong> (600+ finalist presentations up to date). I also have <strong>built an automated certificate distribution system </strong>after noticing the manual inefficiency.</p>")
-    body += entry("Global Scholar", "Polytechnic School · 2026 - present",
+    body += entry("Global Scholar", "Polytechnic School · 2025 - present",
                   "<p>As a Global Scholar at Polytechnic School, I attend <strong>speaker events</strong> with <strong>diplomats</strong> and <strong>policy experts</strong>, participate in cross-cultural exchanges, and write a <strong>blog</strong> analyzing international affairs, from geopolitical conflicts to global environmental policies. I also serve as a Global Ambassador, helping <strong>organize events and discussions</strong> that foster global awareness on campus.</p>",
                   extra=btn("Visit my blog here!", "https://kellandhgip.squarespace.com/"))
     body += entry("Judiciary Council", "Polytechnic School · 2025 - present",
                   "<p>I was elected and interviewed into the Judiciary Council, where I focus in the Policy and Student Voice subcommittee on reviewing student conduct cases to represent the student body.</p>")
     body += grid(
         cell("<h4>Volunteering</h4>"
-             "<p><strong>The Huntington</strong></p><p class=\"meta\">Museum Education &amp; Gardening Volunteer · 2025 – present</p>"
+             "<p><strong>The Huntington</strong></p><p class=\"meta\">Museum Education &amp; Gardening Volunteer · 2026 – present</p>"
              "<p>At the Huntington, I lead hands-on cultural learning in the Chinese Garden’s Flowery Brush Library for public visitors and help facilitate sustainability-focused events such as the Huntington’s plant sale. </p>"
              "<p class=\"gap\"><strong>Boys &amp; Girls Club (Pasadena)</strong></p><p class=\"meta\">Volunteer · 2025 – present</p>"
              "<p>I volunteer weekly at the Boys and Girls Club to assist with after-school enrichment and leisure activities. I have also brought my own advocacy work–<a href=\"leaf-by-leaf.html\">Leaf by Leaf</a>–to multiple Boys and Girls Clubs locations.</p>",
