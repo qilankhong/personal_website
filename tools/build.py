@@ -196,7 +196,6 @@ def page(filename, title, description, body, og_image="headshot", banner=""):
   <p><a href="mailto:qilan.k.hong@gmail.com">qilan.k.hong@gmail.com</a></p>
   <p><a href="tel:+14159289558">+1 (415) 928-9558</a></p>
   <p>San Gabriel, California</p>
-  <p style="margin-top:0.8rem"><a href="assets/media/qilan-hong-resume.pdf" target="_blank" rel="noopener"><strong>Resume (PDF)</strong></a></p>
 </footer>
 <script src="assets/js/site.js" defer></script>
 </body>
