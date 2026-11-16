@@ -333,24 +333,24 @@ def build_vermighty():
                       shot("verm-terrapalooza-2", "Title slide: Vermighty, Rethinking Food Systems", ar="8 / 7"))
             + '<p class="cap">Presenting Vermighty at Terrapalooza ⬆️</p>'
             + '<div class="spacer sm"></div>'
-            + collage(shot("verm-assembling", "Assembling Vermighty on campus", ar="1 / 1"),
-                      shot("verm-hero", "Collage of Vermighty under construction", ar="1 / 1"))
+            + collage(shot("verm-assembling", "Assembling Vermighty on campus", ar="4 / 3"),
+                      shot("verm-upclose", "Vermighty set up in its frame on campus", ar="4 / 3"))
             + '<p class="cap">Assembling Vermighty on Campus ⬆️</p>')
     right = ("<p>I’m also <strong>partnering with Epicurean</strong>, our school food service, to collect leftover food for compost testing. Once the compost is ready, I <strong>give it to our school’s Poly Planters club</strong> to use in their garden beds, creating a <strong>small circular system</strong> on campus.</p>"
-             + collage(shot("verm-leftovers", "School food leftovers used for compost", "School leftovers Vermighty used", ar="1 / 2"),
-                       '<div>' + shot("verm-upclose", "The finished Vermighty bin", ar="8 / 7")
-                       + '<p class="cap" style="margin-top:0.8rem">Location of Vermighty to ⬇️⬇️</p>'
-                       + shot("verm-location", "Vermighty’s spot on campus", ar="5 / 3") + "</div>",
-                       cols="1fr 1.7fr")
-             + '<div class="push-right">' + shot("verm-garden-beds", "The Poly Planters garden beds", ar="4 / 3")
-             + '<p class="cap">⬆️ Location of Poly Planters garden beds</p></div>')
+             + collage('<div style="padding-top:2.2rem">' + shot("verm-leftovers", "School food leftovers used for compost", ar="3 / 4")
+                       + '<p class="cap" style="text-align:center">School leftovers Vermighty used</p></div>',
+                       '<div>' + shot("verm-location", "Vermighty’s spot on campus", ar="4 / 3")
+                       + '<p class="cap">Location of Vermighty to ⬇️⬇️</p>'
+                       + '<div style="margin-left:12%">' + shot("verm-garden-beds", "The Poly Planters garden beds", ar="4 / 3")
+                       + '<p class="cap" style="text-align:center">⬆️ Location of Poly Planters garden beds</p></div></div>',
+                       cols="1fr 1.75fr"))
     body += grid(cell(left, "1 / 7", "1"), '<div class="vrule" style="--col:7 / 8;--row:1"></div>', cell(right, "8 / -1", "1"))
     body += '<hr class="rule short">'
     body += grid(cell("<p>My long-term goal is to<strong> build Vermighty into the school curriculum</strong> so other students can continue running and developing it beyond my own involvement. I’m currently working toward that goal through an <strong>Independent Study</strong> with a teacher focused on developing Vermighty’s curriculum and long-term implementation.</p>",
                       "4 / 10", None, "center"))
     page("vermighty.html", "Vermighty",
          "Vermighty: a hybrid thermophilic and vermicomposting system designed, engineered, and built by Qilan (Kelland) Hong.",
-         body, "verm-terrapalooza-1", hero("verm-terrapalooza-1", "Vermighty", "Founder · 2025 - present"))
+         body, "verm-terrapalooza-1", hero("verm-hero", "Vermighty", "Founder · 2025 - present"))
 
 
 def build_lbl():
